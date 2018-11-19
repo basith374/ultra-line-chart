@@ -1,3 +1,32 @@
-.y.axis text {
+.ulg .trace path {
+    fill: none;
+    stroke-width: 3px;
+    stroke: #8e44ad;
+    stroke-linecap: round;
+}
+.ulg .trace path.thk {
+    stroke-width: 1px;
+}
+.ulg .axis path ,
+.ulg .axis line {
+    stroke: #ccc;
+}
+.ulg .axis text {
+    fill: #999;
+}
+.ulg .grid path {
+    stroke: none;
+}
+.ulg .grid line {
+    stroke: #eaeaea;
+}  
+
+.ulg text {
+    font-family: gotham;
+}
+.ulg .y.axis text {
     text-anchor: end;
+}
+.ult {
+    text-anchor: middle;
 }
