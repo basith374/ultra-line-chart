@@ -169,6 +169,7 @@ function drawLineChart(el, config) {
             let coords = d3.mouse(this);
             this.dropX = coords[0];
             g.selectAll('rect.rs').remove();
+            if(this.est && config.onZoom) config.onZoom(null, null);
             this.est = false;
             // g.append('rect')
             //     .attr('class', 'rs')
@@ -187,7 +188,8 @@ function drawLineChart(el, config) {
                     .attr('fill', 'rgba(0,0,0,.1')
                     .attr('height', height)
                     .on('click', function() {
-                        this.remove()
+                        this.remove();
+                        if(config.onZoom) config.onZoom(null, null);
                     });
                 if(config.bucketSize) {
                     let time = x.invert(tarX);
