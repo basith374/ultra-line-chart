@@ -130,6 +130,29 @@ function drawLineChart(el, config) {
     //         .attr('style', 'filter:url(#f2)');
     // }
 
+    let bisectPoints = [];
+    if(config.bucketBase == 'hour' || config.bucketBase == 'day') {
+        let extremes = d3.extent(data[0].points, f => f.date);
+        let startBase = moment(extremes[0]).startOf(config.bucketBase);
+        let endBase = moment(extremes[1]).endOf(config.bucketBase);
+        // bisectPoints.push(startBase.valueOf());
+        // let pointer = extremes[0];
+        let pointer = startBase.valueOf();
+        let increment = config.bucketBase == 'hour' ? 3600000 : 86400000;
+        do {
+            bisectPoints.push(pointer);
+        } while((pointer = pointer + increment) < extremes[1]);
+        bisectPoints.push(extremes[1]);
+    }
+    // console.log(bisectPoints.slice(0, 3).map(f => moment(f).format('DD/MM/YYYY HH:mm')))
+    // console.log(bisectPoints.slice(bisectPoints.length - 3).map(f => moment(f).format('DD/MM/YYYY HH:mm')))
+
+    function bisectPoint(tx, backward) {
+        let i = d3.bisector(d => d).left(bisectPoints, x.invert(tx), 1);
+        let d0 = bisectPoints[i - 1];
+        let d1 = bisectPoints[i];
+        return x(backward ? d0 : d1);
+    }
     svg.select('rect.ro')
     .attr('width', width)
     .attr('height', height)
@@ -137,8 +160,9 @@ function drawLineChart(el, config) {
     .call(d3.drag()
         .on('start', function(d) {
             let coords = d3.mouse(this);
-            this.dropX = coords[0]
+            this.dropX = coords[0];
             g.selectAll('rect.rs').remove();
+            this.est = false;
             // g.append('rect')
             //     .attr('class', 'rs')
             //     .attr('width', 1)
@@ -148,22 +172,40 @@ function drawLineChart(el, config) {
         })
         .on('drag', function(d) {
             let coords = d3.mouse(this);
+            let tarX = coords[0];
             let rect = g.selectAll('rect.rs').data([0]);
-            if(Math.abs(coords[0] - this.dropX) > 3) rect.enter().append('rect')
-                .attr('class', 'rs')
-                .attr('fill', 'rgba(0,0,0,.1')
-                .attr('height', height);
-            if(coords[0] < this.dropX) rect.attr('x', coords[0])
+            if(!this.est && Math.abs(tarX - this.dropX) > 3) {
+                rect.enter().append('rect')
+                    .attr('class', 'rs')
+                    .attr('fill', 'rgba(0,0,0,.1')
+                    .attr('height', height)
+                    .on('click', function() {
+                        this.remove()
+                    });
+                if(config.bucketSize) {
+                    let time = x.invert(tarX);
+                    let base = moment(time);
+                    if(config.bucketBase == 'hour') base = base[tarX > this.dropX ? 'startOf' : 'endOf']('hour');
+                    if(config.bucketBase == 'day') base = base.startOf('day');
+                    this.dropX = x(base.valueOf());
+                }
+                this.est = true;
+            }
+            tarX = bisectPoint(tarX, this.dropX > tarX);
+            if(tarX < this.dropX) rect.attr('x', tarX);
             else rect.attr('x', this.dropX);
-            rect.attr('width',  Math.abs(this.dropX - coords[0]));   
+            rect.attr('width',  Math.abs(this.dropX - tarX));
         })
         .on('end', function(d) {
+            if(!this.est) return;
             let x1 = this.dropX;
             let x2 = d3.mouse(this)[0];
+            x2 = bisectPoint(x2);
             let points = [x1, x2];
             if(x1 > x2) points.reverse();
             points = points.map(p => x.invert(p));
             if(config.onZoom) config.onZoom(points[0], points[1]);
+            console.log(points)
         })
     );
 }
