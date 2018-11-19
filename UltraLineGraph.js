@@ -9,6 +9,17 @@ var margin = {top:20, left: 50, right: 10, bottom: 20};
 var height = 400 - margin.top - margin.bottom;
 var width = 600 - margin.left - margin.right;
 
+function getMaxY(config) {
+    let data = config.data;
+    let maxY = 0;
+    for(let d in data) {
+        data[d].points.sort((a, b) => a.date - b.date);
+        let numbers = data[d].points.map(p => p.value);
+        maxY = Math.max(maxY, Math.max.apply(null, numbers));
+    }
+    return Math.max(maxY, config.maxY);
+}
+
 function drawLineChart(el, config) {
     let data = config.data;
 
@@ -25,15 +36,10 @@ function drawLineChart(el, config) {
     /* define axis & line */
     var x = d3.scaleTime()
         .range([0, width])
-        .domain(d3.extent(data[0].points, d => d.date));
+    if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
     let getXAxis = () => d3.axisBottom(x).ticks(7);
 
-    let maxY = 0;
-    for(let d in data) {
-        data[d].points.sort((a, b) => a.date - b.date);
-        let numbers = data[d].points.map(p => p.value);
-        maxY = Math.max(maxY, Math.max.apply(null, numbers));
-    }
+    let maxY = getMaxY(config);
     let items = svg.select('defs').selectAll('linearGradient').data(data);
     items.enter().append('linearGradient')
         .merge(items)
@@ -56,6 +62,7 @@ function drawLineChart(el, config) {
     let getYAxis = () => d3.axisLeft(y).ticks(5);
 
     function mousemove() {
+        if(data.length == 0) return;
         let _x = d3.mouse(this)[0]
         _x = Math.max(0, Math.min(_x - margin.left, width))
         var x0 = x.invert(_x),
@@ -131,7 +138,7 @@ function drawLineChart(el, config) {
     // }
 
     let bisectPoints = [];
-    if(config.bucketBase == 'hour' || config.bucketBase == 'day') {
+    if(data.length && (config.bucketBase == 'hour' || config.bucketBase == 'day')) {
         let extremes = d3.extent(data[0].points, f => f.date);
         let startBase = moment(extremes[0]).startOf(config.bucketBase);
         let endBase = moment(extremes[1]).endOf(config.bucketBase);
@@ -192,6 +199,7 @@ function drawLineChart(el, config) {
                 this.est = true;
             }
             tarX = bisectPoint(tarX, this.dropX > tarX);
+            if(data.length == 0) return;
             if(tarX < this.dropX) rect.attr('x', tarX);
             else rect.attr('x', this.dropX);
             rect.attr('width',  Math.abs(this.dropX - tarX));
@@ -238,14 +246,9 @@ export default class UltraLineGraph extends Component {
         let data = props.config.data;
         this.x = d3.scaleTime()
             .range([0, width])
-            .domain(d3.extent(data[0].points, d => d.date));
+        if(data.length) this.x.domain(d3.extent(data[0].points, d => d.date));
 
-        let maxY = 0;
-        for(let d in data) {
-            data[d].points.sort((a, b) => a.date - b.date);
-            let numbers = data[d].points.map(p => p.value);
-            maxY = Math.max(maxY, Math.max.apply(null, numbers));
-        }
+        let maxY = getMaxY(props.config);
         this.y = d3.scaleLinear()
             .rangeRound([height, 0])
             .domain([0, maxY]);
@@ -273,6 +276,7 @@ export default class UltraLineGraph extends Component {
                         <g className="y axis"></g>
                         <g className="x axis"></g>
                         <text className="ult" x={width / 2} height={10}>{config.name}</text>
+                        {data.length == 0 && <text className="em" x={width/2} y={height/2}>No Data</text>}
                     </g>
                     <g transform={`translate(${margin.left}, ${margin.top})`}>
                         {data.map((d, i) => {

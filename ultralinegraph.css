@@ -27,6 +27,11 @@
 .ulg .y.axis text {
     text-anchor: end;
 }
+.ulg text.em {
+    font-size: 30px;
+    text-anchor: middle;
+    fill: #999;
+}
 .ult {
     text-anchor: middle;
 }
