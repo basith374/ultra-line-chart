@@ -22,6 +22,8 @@ function getMaxY(config) {
 
 function drawLineChart(el, config) {
     let data = config.data;
+    // let height = config.height;
+    // let width = config.width;
 
     /* init */
     var svg = d3.select(el).select('svg');
@@ -219,46 +221,41 @@ function drawLineChart(el, config) {
     );
 }
 
+function getLine(config) {
+    let data = config.data;
+    // let height = config.height;
+    // let width = config.width;
+    let x = d3.scaleTime()
+        .range([0, width])
+    if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
+
+    let maxY = getMaxY(config);
+    let y = d3.scaleLinear()
+        .rangeRound([height, 0])
+        .domain([0, maxY]);
+    return d3.line()
+        .curve(d3.curveMonotoneX)
+        // .curve(d3.curveCatmullRom)
+        // .curve(d3.curveCardinal)
+        // .curve(d3.curveBasis)
+        .x(d => x(d.date))
+        .y(d => y(d.value));
+}
 
 export default class UltraLineGraph extends Component {
-    constructor() {
-        super();
-        this.line = d3.line()
-            .curve(d3.curveMonotoneX)
-            // .curve(d3.curveCatmullRom)
-            // .curve(d3.curveCardinal)
-            // .curve(d3.curveBasis)
-            .x(d => this.x(d.date))
-            .y(d => this.y(d.value));
-    }
-    componentWillMount() {
-        this.setXY(this.props);
-    }
     componentDidMount() {
         let config = this.props.config;
         drawLineChart(ReactDOM.findDOMNode(this), config);
     }
     componentWillReceiveProps(props) {
         if(props.config != this.props.config) {
-            this.setXY(props);
             drawLineChart(ReactDOM.findDOMNode(this), props.config);
         }
-    }
-    setXY(props) {
-        let data = props.config.data;
-        data.sort((b, a) => a.points.length - b.points.length);
-        this.x = d3.scaleTime()
-            .range([0, width])
-        if(data.length) this.x.domain(d3.extent(data[0].points, d => d.date));
-
-        let maxY = getMaxY(props.config);
-        this.y = d3.scaleLinear()
-            .rangeRound([height, 0])
-            .domain([0, maxY]);
     }
     render() {
         let config = this.props.config;
         let data = this.props.config.data;
+        let line = getLine(this.props.config);
         return (
             <div className="ulg">
                 <svg>
@@ -285,8 +282,8 @@ export default class UltraLineGraph extends Component {
                         {data.map((d, i) => {
                             let pathStyle = {stroke:`url(#lcg-${i})`};
                             let paths = [
-                                <path key={d.name + 'blur'} className="thk" style={pathStyle} filter="url(#f1)" d={this.line(d.points)}></path>,
-                                <path key={d.name} style={pathStyle} d={this.line(d.points)}></path>
+                                <path key={d.name + 'blur'} className="thk" style={pathStyle} filter="url(#f1)" d={line(d.points)}></path>,
+                                <path key={d.name} style={pathStyle} d={line(d.points)}></path>
                             ];
                             return <g key={i} className="trace">{paths}</g>
                         })}
