@@ -246,6 +246,7 @@ export default class UltraLineGraph extends Component {
     }
     setXY(props) {
         let data = props.config.data;
+        data.sort((b, a) => a.points.length - b.points.length);
         this.x = d3.scaleTime()
             .range([0, width])
         if(data.length) this.x.domain(d3.extent(data[0].points, d => d.date));
