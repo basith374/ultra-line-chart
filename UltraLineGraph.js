@@ -195,7 +195,7 @@ function drawLineChart(el, config) {
                     let time = x.invert(tarX);
                     let base = moment(time);
                     if(config.bucketBase == 'hour') base = base[tarX > this.dropX ? 'startOf' : 'endOf']('hour');
-                    if(config.bucketBase == 'day') base = base.startOf('day');
+                    if(config.bucketBase == 'day') base = base[tarX > this.dropX ? 'startOf' : 'endOf']('day');
                     this.dropX = x(base.valueOf());
                 }
                 this.est = true;
