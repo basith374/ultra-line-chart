@@ -205,7 +205,6 @@ function drawLineChart(el, config) {
             if(x1 > x2) points.reverse();
             points = points.map(p => x.invert(p));
             if(config.onZoom) config.onZoom(points[0], points[1]);
-            console.log(points)
         })
     );
 }
