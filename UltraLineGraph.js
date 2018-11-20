@@ -22,8 +22,8 @@ function getMaxY(config) {
 
 function drawLineChart(el, config) {
     let data = config.data;
-    // let height = config.height;
-    // let width = config.width;
+    let height = config.height;
+    let width = config.width;
 
     /* init */
     var svg = d3.select(el).select('svg');
@@ -223,8 +223,8 @@ function drawLineChart(el, config) {
 
 function getLine(config) {
     let data = config.data;
-    // let height = config.height;
-    // let width = config.width;
+    let height = config.height;
+    let width = config.width;
     let x = d3.scaleTime()
         .range([0, width])
     if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
@@ -248,19 +248,19 @@ export default class UltraLineGraph extends Component {
         height: 0,
     }
     componentDidMount() {
-        let el = ReactDOM.findDOMNode(this);
+        let el = ReactDOM.findDOMNode(this), pn = el.parentNode;
         let config = this.props.config;
-        // if(!config.height) config.height = el.offsetHeight - margin.top - margin.bottom;
-        // if(!config.width) config.width = el.offsetWidth - margin.left - margin.right;
-        // this.setState({height: config.height, width: config.width}, () => drawLineChart(el, config));
+        if(!config.height) config.height = pn.offsetHeight - margin.top - margin.bottom;
+        if(!config.width) config.width = pn.offsetWidth - margin.left - margin.right;
+        this.setState({height: config.height, width: config.width}, () => drawLineChart(el, config));
         drawLineChart(el, config)
     }
     componentWillReceiveProps(props) {
         if(props.config != this.props.config) {
-            let el = ReactDOM.findDOMNode(this);
+            let el = ReactDOM.findDOMNode(this), pn = el.parentNode;
             let config = props.config;
-            // if(!config.height) config.height = el.offsetHeight - margin.top - margin.bottom;
-            // if(!config.width) config.width = el.offsetWidth - margin.left - margin.right;
+            if(!config.height) config.height = pn.offsetHeight - margin.top - margin.bottom;
+            if(!config.width) config.width = pn.offsetWidth - margin.left - margin.right;
             drawLineChart(el, config);
         }
     }
@@ -288,8 +288,10 @@ export default class UltraLineGraph extends Component {
     renderSvg() {
         let config = this.props.config;
         let data = this.props.config.data;
+        let {height, width} = this.state;
+        config.height = height;
+        config.width = width;
         let line = getLine(config);
-        // let {height, width} = this.state;
         return (
             <svg>
                 <defs>
