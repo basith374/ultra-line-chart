@@ -272,10 +272,10 @@ export default class UltraLineGraph extends Component {
         if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
         let x0 = x(starttime);
         let x1 = x(endtime);
-        d3.select(ReactDOM.findDOMNode(this))
+        let rect = d3.select(ReactDOM.findDOMNode(this))
             .select('g.upco')
-            .append('rect')
-            .attr('x', x0)
+        rect.select('rect.rs').remove();
+        rect.append('rect').attr('x', x0)
             .attr('width', x1 - x0)
             .attr('class', 'rs')
             .attr('fill', 'rgba(0,0,0,.1')
