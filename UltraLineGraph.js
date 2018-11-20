@@ -30,7 +30,7 @@ function drawLineChart(el, config) {
     svg.on('mousemove', mousemove)
     svg.attr('height', height + margin.top + margin.bottom);
     svg.attr('width', width + margin.left + margin.right);
-    let g = svg.select('g.upco').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+    let g = svg.select('g.upco');
 
     // g.on('mousemove', mousemove)
 
@@ -266,6 +266,7 @@ export default class UltraLineGraph extends Component {
     }
     setRange = (starttime, endtime) => {
         let config = this.props.config;
+        let {height} = this.state;
         let data = config.data;
         let x = d3.scaleTime()
             .range([0, width])
@@ -326,7 +327,7 @@ export default class UltraLineGraph extends Component {
                 <g transform={`translate(${margin.left}, ${margin.top})`}>
                     <rect className="ro"></rect>
                 </g>
-                <g className="upco"></g>
+                <g className="upco" transform={`translate(${margin.left}, ${margin.top})`}></g>
             </svg>
         )
     }
