@@ -17,7 +17,7 @@ function getMaxY(config) {
         let numbers = data[d].points.map(p => p.value);
         maxY = Math.max(maxY, Math.max.apply(null, numbers));
     }
-    return Math.max(maxY, config.maxY);
+    return Math.max(maxY, config.maxY || 0);
 }
 
 function drawLineChart(el, config) {
