@@ -243,56 +243,96 @@ function getLine(config) {
 }
 
 export default class UltraLineGraph extends Component {
+    state = {
+        width: 0,
+        height: 0,
+    }
     componentDidMount() {
+        let el = ReactDOM.findDOMNode(this);
         let config = this.props.config;
-        drawLineChart(ReactDOM.findDOMNode(this), config);
+        // if(!config.height) config.height = el.offsetHeight - margin.top - margin.bottom;
+        // if(!config.width) config.width = el.offsetWidth - margin.left - margin.right;
+        // this.setState({height: config.height, width: config.width}, () => drawLineChart(el, config));
+        drawLineChart(el, config)
     }
     componentWillReceiveProps(props) {
         if(props.config != this.props.config) {
-            drawLineChart(ReactDOM.findDOMNode(this), props.config);
+            let el = ReactDOM.findDOMNode(this);
+            let config = props.config;
+            // if(!config.height) config.height = el.offsetHeight - margin.top - margin.bottom;
+            // if(!config.width) config.width = el.offsetWidth - margin.left - margin.right;
+            drawLineChart(el, config);
         }
     }
-    render() {
+    setRange = (starttime, endtime) => {
+        let config = this.props.config;
+        let data = config.data;
+        let x = d3.scaleTime()
+            .range([0, width])
+        if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
+        let x0 = x(starttime);
+        let x1 = x(endtime);
+        d3.select(ReactDOM.findDOMNode(this))
+            .select('g.upco')
+            .append('rect')
+            .attr('x', x0)
+            .attr('width', x1 - x0)
+            .attr('class', 'rs')
+            .attr('fill', 'rgba(0,0,0,.1')
+            .attr('height', height)
+            .on('click', function() {
+                this.remove();
+                if(config.onZoom) config.onZoom(null, null);
+            });
+    }
+    renderSvg() {
         let config = this.props.config;
         let data = this.props.config.data;
-        let line = getLine(this.props.config);
+        let line = getLine(config);
+        // let {height, width} = this.state;
+        return (
+            <svg>
+                <defs>
+                    <filter id="f1" x="0" y="0">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="5"></feGaussianBlur>
+                    </filter>
+                    <filter id="f2" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="1"></feGaussianBlur>
+                    </filter>
+                    <linearGradient>
+                        <stop></stop>
+                    </linearGradient>
+                </defs>
+                <g transform={`translate(${margin.left}, ${margin.top})`}>
+                    <g className="y grid"></g>
+                    <g className="x grid"></g>
+                    <g className="y axis"></g>
+                    <g className="x axis"></g>
+                    <text className="ult" x={width / 2} height={10}>{config.name}</text>
+                    {data.length == 0 && <text className="em" x={width/2} y={height/2}>No Data</text>}
+                </g>
+                <g transform={`translate(${margin.left}, ${margin.top})`}>
+                    {data.map((d, i) => {
+                        let pathStyle = {stroke:`url(#lcg-${i})`};
+                        let paths = [
+                            <path key={d.name + 'blur'} className="thk" style={pathStyle} filter="url(#f1)" d={line(d.points)}></path>,
+                            <path key={d.name} style={pathStyle} d={line(d.points)}></path>
+                        ];
+                        return <g key={i} className="trace">{paths}</g>
+                    })}
+                </g>
+                <g transform={`translate(${margin.left}, ${margin.top})`}>
+                    <rect className="ro"></rect>
+                </g>
+                <g className="upco"></g>
+            </svg>
+        )
+    }
+    render() {
         return (
             <div className="ulg">
-                <svg>
-                    <defs>
-                        <filter id="f1" x="0" y="0">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="5"></feGaussianBlur>
-                        </filter>
-                        <filter id="f2" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="1"></feGaussianBlur>
-                        </filter>
-                        <linearGradient>
-                            <stop></stop>
-                        </linearGradient>
-                    </defs>
-                    <g transform={`translate(${margin.left}, ${margin.top})`}>
-                        <g className="y grid"></g>
-                        <g className="x grid"></g>
-                        <g className="y axis"></g>
-                        <g className="x axis"></g>
-                        <text className="ult" x={width / 2} height={10}>{config.name}</text>
-                        {data.length == 0 && <text className="em" x={width/2} y={height/2}>No Data</text>}
-                    </g>
-                    <g transform={`translate(${margin.left}, ${margin.top})`}>
-                        {data.map((d, i) => {
-                            let pathStyle = {stroke:`url(#lcg-${i})`};
-                            let paths = [
-                                <path key={d.name + 'blur'} className="thk" style={pathStyle} filter="url(#f1)" d={line(d.points)}></path>,
-                                <path key={d.name} style={pathStyle} d={line(d.points)}></path>
-                            ];
-                            return <g key={i} className="trace">{paths}</g>
-                        })}
-                    </g>
-                    <g transform={`translate(${margin.left}, ${margin.top})`}>
-                        <rect className="ro"></rect>
-                    </g>
-                    <g className="upco"></g>
-                </svg>
+                {/* {this.state.width && this.state.height && this.renderSvg()} */}
+                {this.renderSvg()}
             </div>
         )
     }
