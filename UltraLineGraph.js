@@ -266,7 +266,7 @@ export default class UltraLineGraph extends Component {
     }
     setRange = (starttime, endtime) => {
         let config = this.props.config;
-        let {height} = this.state;
+        let {width, height} = this.state;
         let data = config.data;
         let x = d3.scaleTime()
             .range([0, width])
