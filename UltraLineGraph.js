@@ -162,11 +162,12 @@ function drawLineChart(el, config) {
         let d1 = bisectPoints[i];
         return x(backward ? d0 : d1);
     }
-    svg.select('rect.ro')
+    let rectro = svg.select('rect.ro')
     .attr('width', width)
     .attr('height', height)
     .attr('fill', 'transparent')
-    .call(d3.drag()
+    if(!config.disableTrack)
+    rectro.call(d3.drag()
         .on('start', function(d) {
             let coords = d3.mouse(this);
             this.dropX = coords[0];
