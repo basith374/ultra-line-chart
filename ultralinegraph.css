@@ -1,7 +1,6 @@
 .ulg .trace path {
     fill: none;
     stroke-width: 3px;
-    stroke: #8e44ad;
     stroke-linecap: round;
 }
 .ulg .trace path.thk {

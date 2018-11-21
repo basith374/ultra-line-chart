@@ -20,6 +20,14 @@ function getMaxY(config) {
     return Math.max(maxY, config.maxY || 0);
 }
 
+function getX(config) {
+    let {width,data} = config;
+    let x = d3.scaleTime()
+        .range([0, width])
+    if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
+    return x;
+}
+
 function drawLineChart(el, config) {
     let data = config.data;
     let height = config.height;
@@ -36,27 +44,25 @@ function drawLineChart(el, config) {
 
     let bisectDate = d3.bisector(d => d.date).left;
     /* define axis & line */
-    var x = d3.scaleTime()
-        .range([0, width])
-    if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
+    var x = getX(config);
     let getXAxis = () => d3.axisBottom(x).ticks(7);
 
     let maxY = getMaxY(config);
-    let items = svg.select('defs').selectAll('linearGradient').data(data);
-    items.enter().append('linearGradient')
-        .merge(items)
-        .attr('id', (d, i) => `lcg-${i}`)
-        .attr('x1', '0%')
-        .attr('y1', '0%')
-        .attr('x2', '100%')
-        .attr('y2', '0%')
-        .each(function(d, i) {
-            let items = d3.select(this).selectAll('stop').data(data[i].color)
-            items.enter().append('stop')
-                .merge(items)
-                .attr('offset', (d, i) => i ? '100%' : '0%')
-                .style('stop-color', d => d);
-        });
+    // let items = svg.select('defs').selectAll('linearGradient').data(data);
+    // items.enter().append('linearGradient')
+    //     .merge(items)
+    //     .attr('id', (d, i) => `lcg-${i}`)
+    //     .attr('x1', '0%')
+    //     .attr('y1', '0%')
+    //     .attr('x2', '100%')
+    //     .attr('y2', '0%')
+    //     .each(function(d, i) {
+    //         let items = d3.select(this).selectAll('stop').data(data[i].color)
+    //         items.enter().append('stop')
+    //             .merge(items)
+    //             .attr('offset', (d, i) => i ? '100%' : '0%')
+    //             .style('stop-color', d => d);
+    //     });
 
     var y = d3.scaleLinear()
         .rangeRound([height, 0])
@@ -108,36 +114,32 @@ function drawLineChart(el, config) {
         .y(d => y(d.value));
 
     /* draw path */
-    // for(let i in data) {
-    //     let d = data[i].points;
-    //     let traceg = g.append('g')
-    //         .attr('class', 'trace')
-        
-    //     traceg.append('path')
-    //         .attr('class', 'thk')
-    //         .attr('style', `stroke:url(#lcg-${i});`)
-    //         .attr('filter', 'url(#f1)')
-    //         .datum(d)
-    //         .attr('d', line);
-    //     traceg.append('circle')
-    //         .attr('class', 'cp-' + i)
-    //         .attr('r', 5)
-    //         .attr('cx', x(d[d.length - 1].date))
-    //         .attr('cy', y(d[d.length - 1].value))
-    //         .attr('fill', data[i].color[0])
-    //         .attr('style', 'filter:url(#f2)');
-    //     traceg.append('path')
-    //         .attr('style', `stroke:url(#lcg-${i});`)
-    //         .datum(d)
-    //         .attr('d', line);
-    //     traceg.append('circle')
-    //         .attr('class', 'cp-' + i)
-    //         .attr('r', 3)
-    //         .attr('cx', x(d[d.length - 1].date))
-    //         .attr('cy', y(d[d.length - 1].value))
-    //         .attr('fill', data[i].color[1])
-    //         .attr('style', 'filter:url(#f2)');
-    // }
+    let gt = svg.selectAll('g.gt').data([0])
+    gt.enter().append('g')
+        .attr('class', 'gt')
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
+    let traces = gt.selectAll('g.trace').data(data);
+    traces.exit().remove();
+    traces.enter().append('g')
+        .merge(traces)
+        .attr('class', 'trace')
+        .each(function(d, i) {
+            let patht = d3.select(this).selectAll('path.thk').data([0]);
+            patht.enter().append('path')
+                .merge(patht)
+                .attr('class', 'thk')
+                // .attr('style', `stroke:url(#lcg-${i});`)
+                .attr('stroke', d.color)
+                .attr('filter', 'url(#f1)')
+                .attr('d', line(d.points));
+            let path = d3.select(this).selectAll('path.thn').data([0]);
+            path.enter().append('path')
+                .merge(path)
+                .attr('class', 'thn')
+                .attr('stroke', d.color)
+                // .attr('style', `stroke:url(#lcg-${i});`)
+                .attr('d', line(d.points));
+        });
 
     let bisectPoints = [];
     if(data.length && (config.bucketBase == 'hour' || config.bucketBase == 'day')) {
@@ -222,25 +224,31 @@ function drawLineChart(el, config) {
     );
 }
 
-function getLine(config) {
-    let data = config.data;
-    let height = config.height;
-    let width = config.width;
-    let x = d3.scaleTime()
-        .range([0, width])
-    if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
+function setRange(starttime, endtime, el, config) {
+    let {height} = config;
+    let x = getX(config);
+    let x0 = x(starttime);
+    let x1 = x(endtime);
+    let svg = d3.select(el).select('svg'), rect = svg.select('g.upco');
+    let rc = svg.select('rect.ro')._groups[0][0];
+    if(rc) rc.est = true;
+    rect.select('rect.rs').remove();
+    rect.append('rect').attr('x', x0)
+        .attr('width', x1 - x0)
+        .attr('class', 'rs')
+        .attr('fill', 'rgba(0,0,0,.1')
+        .attr('height', height)
+        .on('click', function() {
+            this.remove();
+            if(config.onZoom) config.onZoom(null, null);
+        });
+}
 
-    let maxY = getMaxY(config);
-    let y = d3.scaleLinear()
-        .rangeRound([height, 0])
-        .domain([0, maxY]);
-    return d3.line()
-        .curve(d3.curveMonotoneX)
-        // .curve(d3.curveCatmullRom)
-        // .curve(d3.curveCardinal)
-        // .curve(d3.curveBasis)
-        .x(d => x(d.date))
-        .y(d => y(d.value));
+function getConfigWithDimen(el, config) {
+    let pn = el.parentNode;
+    if(!config.height) config.height = pn.offsetHeight - margin.top - margin.bottom;
+    if(!config.width) config.width = pn.offsetWidth - margin.left - margin.right;
+    return config;
 }
 
 export default class UltraLineGraph extends Component {
@@ -249,44 +257,26 @@ export default class UltraLineGraph extends Component {
         height: 0,
     }
     componentDidMount() {
-        let el = ReactDOM.findDOMNode(this), pn = el.parentNode;
-        let config = this.props.config;
-        if(!config.height) config.height = pn.offsetHeight - margin.top - margin.bottom;
-        if(!config.width) config.width = pn.offsetWidth - margin.left - margin.right;
+        let el = ReactDOM.findDOMNode(this);
+        let config = getConfigWithDimen(el, this.props.config);
         this.setState({height: config.height, width: config.width}, () => drawLineChart(el, config));
         drawLineChart(el, config)
     }
     componentWillReceiveProps(props) {
         if(props.config != this.props.config) {
-            let el = ReactDOM.findDOMNode(this), pn = el.parentNode;
-            let config = props.config;
-            if(!config.height) config.height = pn.offsetHeight - margin.top - margin.bottom;
-            if(!config.width) config.width = pn.offsetWidth - margin.left - margin.right;
-            drawLineChart(el, config);
+            console.log('props')
+            let el = ReactDOM.findDOMNode(this);
+            let config = getConfigWithDimen(el, props.config);
+            // drawLineChart(el, config);
         }
     }
     setRange = (starttime, endtime) => {
         let config = this.props.config;
         let {width, height} = this.state;
-        let data = config.data;
-        let x = d3.scaleTime()
-            .range([0, width])
-        if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
-        let x0 = x(starttime);
-        let x1 = x(endtime);
-        let svg = d3.select(ReactDOM.findDOMNode(this)).select('svg'), rect = svg.select('g.upco');
-        let rc = svg.select('rect.ro')._groups[0][0];
-        if(rc) rc.est = true;
-        rect.select('rect.rs').remove();
-        rect.append('rect').attr('x', x0)
-            .attr('width', x1 - x0)
-            .attr('class', 'rs')
-            .attr('fill', 'rgba(0,0,0,.1')
-            .attr('height', height)
-            .on('click', function() {
-                this.remove();
-                if(config.onZoom) config.onZoom(null, null);
-            });
+        config.width = width;
+        config.height = height;
+        let el = ReactDOM.findDOMNode(this);
+        setRange(starttime, endtime, el, config);
     }
     renderSvg() {
         let config = this.props.config;
@@ -294,7 +284,6 @@ export default class UltraLineGraph extends Component {
         let {height, width} = this.state;
         config.height = height;
         config.width = width;
-        let line = getLine(config);
         return (
             <svg>
                 <defs>
@@ -317,16 +306,6 @@ export default class UltraLineGraph extends Component {
                     {data.length == 0 && <text className="em" x={width/2} y={height/2}>No Data</text>}
                 </g>
                 <g transform={`translate(${margin.left}, ${margin.top})`}>
-                    {data.map((d, i) => {
-                        let pathStyle = {stroke:`url(#lcg-${i})`};
-                        let paths = [
-                            <path key={d.name + 'blur'} className="thk" style={pathStyle} filter="url(#f1)" d={line(d.points)}></path>,
-                            <path key={d.name} style={pathStyle} d={line(d.points)}></path>
-                        ];
-                        return <g key={i} className="trace">{paths}</g>
-                    })}
-                </g>
-                <g transform={`translate(${margin.left}, ${margin.top})`}>
                     <rect className="ro"></rect>
                 </g>
                 <g className="upco" transform={`translate(${margin.left}, ${margin.top})`}></g>
@@ -336,7 +315,6 @@ export default class UltraLineGraph extends Component {
     render() {
         return (
             <div className="ulg">
-                {/* {this.state.width && this.state.height && this.renderSvg()} */}
                 {this.renderSvg()}
             </div>
         )
