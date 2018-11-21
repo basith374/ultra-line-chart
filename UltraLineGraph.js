@@ -264,10 +264,9 @@ export default class UltraLineGraph extends Component {
     }
     componentWillReceiveProps(props) {
         if(props.config != this.props.config) {
-            console.log('props')
             let el = ReactDOM.findDOMNode(this);
             let config = getConfigWithDimen(el, props.config);
-            // drawLineChart(el, config);
+            drawLineChart(el, config);
         }
     }
     setRange = (starttime, endtime) => {
