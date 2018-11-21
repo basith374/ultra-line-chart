@@ -25,6 +25,7 @@ function getX(config) {
     let x = d3.scaleTime()
         .range([0, width])
     if(data.length) x.domain(d3.extent(data[0].points, d => d.date));
+    if(config.xDomain) x.domain(config.xDomain);
     return x;
 }
 
