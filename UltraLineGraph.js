@@ -31,6 +31,7 @@ function getX(config) {
 
 function drawLineChart(el, config) {
     let data = config.data;
+    data.sort((a, b) => b.points.length - a.points.length);
     let height = config.height;
     let width = config.width;
 
