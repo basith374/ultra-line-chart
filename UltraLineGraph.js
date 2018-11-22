@@ -4,11 +4,6 @@ import ReactDOM from 'react-dom';
 import moment from 'moment';
 import './ultralinegraph.css';
 
-/* config */
-var margin = {top:20, left: 30, right: 10, bottom: 20};
-var height = 400 - margin.top - margin.bottom;
-var width = 600 - margin.left - margin.right;
-
 function getMaxY(config) {
     let data = config.data;
     let maxY = 0;
@@ -32,13 +27,12 @@ function getX(config) {
 function drawLineChart(el, config) {
     let data = config.data;
     data.sort((a, b) => b.points.length - a.points.length);
-    let height = config.height;
-    let width = config.width;
 
     let maxY = getMaxY(config);
-    if(maxY > 100000) margin.left = 60;
-    else if(maxY > 1000) margin.left = 50;
-    else if(maxY > 100) margin.left = 40;
+
+    let height = config.height;
+    let width = config.width;
+    let margin = config.margin;
 
     /* init */
     var svg = d3.select(el).select('svg');
@@ -56,25 +50,28 @@ function drawLineChart(el, config) {
     let getYAxis = () => d3.axisLeft(y).ticks(5);
 
     /* draw gridlines */
-    let gridY = g.select('g.grid.y');
-    getYAxis().tickSize(-width).tickFormat('')(gridY);
+    g.select('g.grid.y')
+        // .transition()
+        .call(getYAxis().tickSize(-width).tickFormat(''));
 
-    let gridX = g.select('g.grid.x');
-    gridX.attr("transform", "translate(0," + height + ")");
-    
-    getXAxis().tickSize(-height).tickFormat('')(gridX);
+    g.select('g.grid.x')
+        .attr("transform", "translate(0," + height + ")")
+        // .transition()
+        .call(getXAxis().tickSize(-height).tickFormat(''));
 
     /* draw axis */
-    let axisX = g.select('g.axis.x');
-    axisX.attr('transform', 'translate(0, ' + height + ')');
-    getXAxis()(axisX);
+    g.select('g.axis.x')
+        .attr('transform', 'translate(0, ' + height + ')')
+        // .transition()
+        .call(getXAxis());
     
-    let axisY = g.select('g.axis.y');
-    getYAxis()(axisY);
+    g.select('g.axis.y')
+        // .transition()
+        .call(getYAxis());
 
     /* draw path */
     var line = d3.line()
-        // .curve(d3.curveMonotoneX)
+        .curve(d3.curveMonotoneX)
         .x(d => x(d.date))
         .y(d => y(d.value));
 
@@ -87,23 +84,31 @@ function drawLineChart(el, config) {
         .each(function(d, i) {
             let patht = d3.select(this).selectAll('path.thk').data([0]);
             patht.enter().append('path')
-                .merge(patht)
                 .attr('class', 'thk')
-                // .attr('style', `stroke:url(#lcg-${i});`)
-                .attr('stroke', d.color)
                 .attr('filter', 'url(#f1)')
-                .attr('d', line(d.points));
-            let path = d3.select(this).selectAll('path.thn').data([0]);
-            path.enter().append('path')
-                .merge(path)
-                .attr('class', 'thn')
+                .merge(patht)
                 .attr('stroke', d.color)
-                // .attr('style', `stroke:url(#lcg-${i});`)
+                // .transition()
                 .attr('d', line(d.points));
-            let f = d3.interpolateNumber()
+                let path = d3.select(this).selectAll('path.thn').data([0]);
+            path.enter().append('path')
+                .attr('class', 'thn')
+                .merge(path)
+                .attr('stroke', d.color)
+                // .transition()
+                .attr('d', line(d.points));
+            let text = d3.select(this).selectAll('text.txt').data([0]);
+            path.enter().append('text')
+                .attr('class', 'txt txt-' + i)
+                .attr('x', 10)
+                .merge(text)
+                .attr('fill', d.color)
+                .attr('y', 15 + i * 15)
+                .text(d.name);
         });
 
     /* select area */
+    let bisectDate = d3.bisector(d => d.date).left;
     let bisectPoints = [];
     if(data.length && (config.bucketBase == 'hour' || config.bucketBase == 'day')) {
         let extremes = d3.extent(data[0].points, f => f.date);
@@ -142,15 +147,38 @@ function drawLineChart(el, config) {
     }).on('mousemove', function() {
         let mouse = d3.mouse(this);
         let x0 = x.invert(mouse[0]);
-        let flipTextAnchor = mouse[0] > width - 90;
+        let flipTextAnchor = mouse[0] > width - 100;
         g.select('.ptr rect')
             .attr('x', mouse[0]);
         g.select('.ptr text')
             .attr('x', mouse[0] + (flipTextAnchor ? -10 : 10))
             .attr('text-anchor', flipTextAnchor ? 'end' : 'start')
             .text(moment(x0).format('DD/MM/YYYY HH:mm'));
+        
+        let i = null;
+        let points_count = data.map(p => p.points.length);
+        if(points_count.every(c => points_count[0] === c)) i = bisectDate(data[0].points, x0, 1);
+        let secondhalf = mouse[0] > width / 2;
+        for(let d in data) {
+            let points = data[d];
+            let di = i;
+            if(!di) di = bisectDate(points.points, x0, 1);
+            let d0 = points.points[di - 1];
+            let d1 = points.points[di];
+            if(!d0 || !d1) continue;
+            let p = d0.date - x0 > x0 - d1.date ? d0 : d1;
+            g.select(`text.txt-${d}`)
+                .attr('x', secondhalf ? 10 :  width - 10)
+                .attr('text-anchor', secondhalf ? 'start' : 'end')
+                .text(`${points.name} : ${p.value}`);
+        }
     }).on('mouseleave', function() {
         g.select('g.ptr').remove();
+        for(let d in data) {
+            let points = data[d];
+            g.select(`text.txt-${d}`)
+                .text(`${points.name}`);
+        }
     }).call(d3.drag()
         .on('start', function(d) {
             let coords = d3.mouse(this);
@@ -222,26 +250,34 @@ function setRange(starttime, endtime, el, config) {
 
 function getConfigWithDimen(el, config) {
     let pn = el.parentNode;
+    let margin = {top:20, left: 30, right: 10, bottom: 20};
+    let maxY = getMaxY(config);
+    if(maxY > 100000) margin.left = 60;
+    else if(maxY > 1000) margin.left = 50;
+    else if(maxY > 100) margin.left = 40;
     if(!config.height) config.height = pn.offsetHeight - margin.top - margin.bottom;
     if(!config.width) config.width = pn.offsetWidth - margin.left - margin.right;
+    config.margin = margin;
     return config;
 }
 
 export default class UltraLineGraph extends Component {
     state = {
-        width: 0,
+        margin: {top:20, left: 30, right: 10, bottom: 20},
         height: 0,
+        width: 0
     }
     componentDidMount() {
         let el = ReactDOM.findDOMNode(this);
         let config = getConfigWithDimen(el, this.props.config);
-        this.setState({height: config.height, width: config.width});
+        this.setState({height:config.height,width:config.width,margin:config.margin});
         drawLineChart(el, config);
     }
     componentWillReceiveProps(props) {
         if(JSON.stringify(props.config) != JSON.stringify(this.props.config)) {
             let el = ReactDOM.findDOMNode(this);
             let config = getConfigWithDimen(el, props.config);
+            this.setState({height:config.height,width:config.width,margin:config.margin});
             drawLineChart(el, config);
         }
     }
@@ -255,8 +291,8 @@ export default class UltraLineGraph extends Component {
     }
     renderSvg() {
         let config = this.props.config;
-        let data = this.props.config.data;
-        let {height, width} = this.state;
+        let data = config.data;
+        let {height, width, margin} = this.state;
         return (
             <svg>
                 <defs>
@@ -266,9 +302,6 @@ export default class UltraLineGraph extends Component {
                     <filter id="f2" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur in="SourceGraphic" stdDeviation="1"></feGaussianBlur>
                     </filter>
-                    <linearGradient>
-                        <stop></stop>
-                    </linearGradient>
                 </defs>
                 <g transform={`translate(${margin.left}, ${margin.top})`} className="ulg-g">
                     <g className="y grid"></g>

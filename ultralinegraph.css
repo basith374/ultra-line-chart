@@ -2,7 +2,7 @@
     fill: none;
     stroke-width: 3px;
     stroke-linecap: round;
-    stroke-linejoin: round;
+    /* stroke-linejoin: round; */
 }
 .ulg .trace path.thk {
     stroke-width: 1px;
@@ -40,5 +40,8 @@
 }
 .ptr text {
     fill: #555;
+    font-size: 10px;
+}
+.ulg text.txt {
     font-size: 10px;
 }
