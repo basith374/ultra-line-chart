@@ -132,7 +132,6 @@ function drawLineChart(el, config) {
         .attr('height', height)
         .attr('transform', `translate(${margin.left}, ${margin.top})`)
         .attr('fill', 'transparent')
-    if(!config.disableTrack)
     rectro.on('mouseenter', function() {
         let mouse = d3.mouse(this);
         let ptr = g.append('g').attr('class', 'ptr');
@@ -179,7 +178,9 @@ function drawLineChart(el, config) {
             g.select(`text.txt-${d}`)
                 .text(`${points.name}`);
         }
-    }).call(d3.drag()
+    })
+    if(!config.disableTrack)
+    rectro.call(d3.drag()
         .on('start', function(d) {
             let coords = d3.mouse(this);
             this.dropX = coords[0];
