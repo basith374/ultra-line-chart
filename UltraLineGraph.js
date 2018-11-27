@@ -90,15 +90,22 @@ function drawLineChart(el, config) {
                 .attr('stroke', d.color)
                 // .transition()
                 .attr('d', line(d.points));
-                let path = d3.select(this).selectAll('path.thn').data([0]);
+            let path = d3.select(this).selectAll('path.thn').data([0]);
             path.enter().append('path')
                 .attr('class', 'thn')
                 .merge(path)
                 .attr('stroke', d.color)
                 // .transition()
                 .attr('d', line(d.points));
+        })
+    let legends = gt.selectAll('g.legend').data(data);
+    legends.exit().remove();
+    legends.enter().append('g')
+        .attr('class', 'legend')
+        .merge(legends)
+        .each(function(d, i) {
             let text = d3.select(this).selectAll('text.txt').data([0]);
-            path.enter().append('text')
+            text.enter().append('text')
                 .attr('class', 'txt txt-' + i)
                 .attr('x', 10)
                 .merge(text)
@@ -164,12 +171,13 @@ function drawLineChart(el, config) {
             if(!di) di = bisectDate(points.points, x0, 1);
             let d0 = points.points[di - 1];
             let d1 = points.points[di];
-            if(!d0 || !d1) continue;
-            let p = d0.date - x0 > x0 - d1.date ? d0 : d1;
-            g.select(`text.txt-${d}`)
+            let txt = g.select(`text.txt-${d}`)
                 .attr('x', secondhalf ? 10 :  width - 10)
                 .attr('text-anchor', secondhalf ? 'start' : 'end')
-                .text(`${points.name} : ${p.value}`);
+            if(d0 && d1) {
+                let p = d0.date - x0 > x0 - d1.date ? d0 : d1;
+                txt.text(`${points.name} : ${p.value}`);
+            } else  txt.text(`${points.name}`);
         }
     }).on('mouseleave', function() {
         g.select('g.ptr').remove();
