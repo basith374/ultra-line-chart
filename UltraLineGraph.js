@@ -176,7 +176,7 @@ function drawLineChart(el, config) {
                 .attr('text-anchor', secondhalf ? 'start' : 'end')
             if(d0 && d1) {
                 let p = d0.date - x0 > x0 - d1.date ? d0 : d1;
-                txt.text(`${points.name} : ${p.value}`);
+                txt.text(`${points.name} : ${p.value} ${p.info || ''}`);
             } else  txt.text(`${points.name}`);
         }
     }).on('mouseleave', function() {
