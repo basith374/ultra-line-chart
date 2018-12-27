@@ -104,6 +104,14 @@ function drawLineChart(el, config) {
         .attr('class', 'legend')
         .merge(legends)
         .each(function(d, i) {
+            let text1 = d3.select(this).selectAll('text.txt.stroke').data([0]);
+            text1.enter().append('text')
+                .attr('class', 'txt stroke txt-' + i)
+                .attr('x', 10)
+                .merge(text1)
+                .attr('fill', d.color)
+                .attr('y', 15 + i * 15)
+                .text(d.name);
             let text = d3.select(this).selectAll('text.txt').data([0]);
             text.enter().append('text')
                 .attr('class', 'txt txt-' + i)
